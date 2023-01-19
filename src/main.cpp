@@ -12,16 +12,31 @@ const int LEDVERTE = 0;
 const int LEDBLEU = 12;
 const int oneWireBus = 14;
 const int BAUDRATE = 115200;
+
 const int PORT = 1883;
 
 // WiFi Connection configuration
-char ssid[] = "iPhone de Yassa"; //  le nom du reseau WIFI
-char password[] = "yassa123@@";  // le mot de passe WIFI
+#define wifi_ssid "Redmi Note 10 Pro"
+#define wifi_password "chipouille"
 
-// mqtt server
-char mqtt_server[] = "localhost"; // adresse IP serveur
-#define MQTT_USER ""
-#define MQTT_PASS ""
+#define mqtt_server "localhost"
+#define mqtt_user "fidel"   // s'il a été configuré sur Mosquitto
+#define mqtt_password "123" // idem
+
+// function declartion
+void callback(char *topic, byte *payload, unsigned int length);
+void setup_wifi();
+void reconnect();
+
+// Buffer qui permet de décoder les messages MQTT reçus
+char message_buff[100];
+
+long lastMsg = 0; // Horodatage du dernier message publié sur MQTT
+long lastRecu = 0;
+bool debug = false; // Affiche sur la console si True
+
+// char ssid[] = "iPhone de Yassa"; //  le nom du reseau WIFI
+// char password[] = "yassa123@@";  // le mot de passe WIFI
 
 // Setup a oneWire instance to communicate with any OneWire devices
 OneWire oneWire(oneWireBus);
@@ -29,129 +44,107 @@ DallasTemperature sensors(&oneWire);
 
 // mqtt
 WiFiClient espClient;
-PubSubClient MQTTclient(espClient);
-
-// Fonctions mqtt
-
-void MQTTsend()
-{
-  Serial.println("Dans MQTTsend");
-  char buffer[512];
-  DynamicJsonDocument docMqtt(512);
-  docMqtt["temperature"] = "20";
-  docMqtt["humidity"] = "40";
-  size_t n = serializeJson(docMqtt, buffer);
-  MQTTclient.publish("hello", buffer, n);
-  Serial.println("FIN MQTTsend");
-  delay(1000);
-}
-
-void MQTTcallback(char *topic, byte *payload, unsigned int length)
-{
-  Serial.print("Je suis dans MQTTCallBack");
-  Serial.print("Message MQTT [");
-  Serial.print(topic);
-  Serial.print("] ");
-
-  // DynamicJsonDocument docMqtt(512);
-  // deserializeJson(docMqtt, payload, length);
-  // String msg, title;
-  // msg = docMqtt["msg"] | "";
-  // title = docMqtt["title"] | "";
-  // Serial.println("message reçu : " + msg + " et titre reçu " + title);
-}
-
-// void startled(float temp)
-// {
-//   if (temp >= 20 && temp < 25)
-//   {
-//     // start led bleu -- eteindre les autres
-//     digitalWrite(LEDBLEU, HIGH);
-//     // eteindre les autres
-//     digitalWrite(LEDJAUNE, LOW);
-//     digitalWrite(LEDROUGE, LOW);
-//     digitalWrite(LEDVERTE, LOW);
-//   }
-//   else if (temp >= 25 && temp < 30)
-//   {
-//     // start vert -- eteindre les autres
-//     digitalWrite(LEDVERTE, HIGH);
-//     // eteindre les autres
-//     digitalWrite(LEDROUGE, LOW);
-//     digitalWrite(LEDBLEU, LOW);
-//     digitalWrite(LEDJAUNE, LOW);
-//   }
-//   else if (temp >= 30 && temp < 35)
-//   {
-//     // start jaune -- eteindre les autres
-//     digitalWrite(LEDJAUNE, HIGH);
-//     // eteindre les autres
-//     digitalWrite(LEDROUGE, LOW);
-//     digitalWrite(LEDVERTE, LOW);
-//     digitalWrite(LEDBLEU, LOW);
-//   }
-//   else if (temp >= 35 && temp < 40)
-//   {
-//     // start red -- eteindre les autres
-//     digitalWrite(LEDROUGE, HIGH);
-//     // eteindre les autres
-//     digitalWrite(LEDVERTE, LOW);
-//     digitalWrite(LEDBLEU, LOW);
-//     digitalWrite(LEDJAUNE, LOW);
-//   }
-//   else
-//   {
-//     // start all led pour les faires clignoter
-//     digitalWrite(LEDROUGE, HIGH);
-//     digitalWrite(LEDVERTE, HIGH);
-//     digitalWrite(LEDBLEU, HIGH);
-//     digitalWrite(LEDJAUNE, HIGH);
-
-//     delay(250);
-
-//     digitalWrite(LEDROUGE, LOW);
-//     digitalWrite(LEDVERTE, LOW);
-//     digitalWrite(LEDBLEU, LOW);
-//     digitalWrite(LEDJAUNE, LOW);
-//     delay(250);
-//   }
-// }
+PubSubClient client(espClient);
 
 void setup()
 {
-  Serial.begin(BAUDRATE);
+  Serial.begin(BAUDRATE); // Facultatif pour le debug
   // sensors.begin();
   // pinMode(LEDJAUNE, OUTPUT);
   // pinMode(LEDROUGE, OUTPUT);
   // pinMode(LEDVERTE, OUTPUT);
   // pinMode(LEDBLEU, OUTPUT);
+  setup_wifi();                        // On se connecte au réseau wifi
+  client.setServer(mqtt_server, 1883); // Configuration de la connexion au serveur MQTT
+  client.setCallback(callback);        // La fonction de callback qui est executée à chaque réception de message
+}
 
-  WiFi.begin(ssid, password);
-  Serial.println("");
-  // Wait for connection
+void setup_wifi()
+{
+  delay(10);
+  Serial.println();
+  Serial.print("Connexion a ");
+  Serial.println(wifi_ssid);
+
+  WiFi.begin(wifi_ssid, wifi_password);
+
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(".");
   }
 
-  Serial.println('Je suis avant la connexion WIFI');
+  Serial.println("");
+  Serial.println("Connexion WiFi etablie ");
+  Serial.print("=> Addresse IP : ");
+  Serial.print(WiFi.localIP());
+}
 
-  MQTTclient.setServer(mqtt_server, PORT);
-  MQTTclient.setCallback(MQTTcallback);
-  setup_wifi();
-  // MQTTsend();
-  Serial.println('Je suis après la connexion WIFI');
-  Serial.println("Connected MQTT");
+// Reconnexion
+void reconnect()
+{
+  // Boucle jusqu'à obtenur une reconnexion
+  while (!client.connected())
+  {
+    Serial.println("Connexion au serveur MQTT...");
+    if (client.connect("ESP8266Client", mqtt_user, mqtt_password))
+    {
+      Serial.println("OK");
+    }
+    else
+    {
+      Serial.print("KO, erreur : ");
+      Serial.print(client.state());
+      Serial.println(" On attend 5 secondes avant de recommencer");
+      delay(5000);
+    }
+  }
 }
 
 void loop()
 {
-  // sensors.requestTemperatures();
-  // float temperatureC = sensors.getTempCByIndex(0);
-  // Serial.print(temperatureC);
-  // Serial.println(" C");
+  if (!client.connected())
+  {
+    reconnect();
+  }
 
-  // startled(temperatureC);
-  MQTTsend();
+  client.loop();
+
+  float t = 0.25;
+  float h = 12;
+
+  client.publish("hello", String(t).c_str(), true); // Publie la température sur le topic temperature_topic
+  client.publish("hello", String(h).c_str(), true); // Et l'humidité
+}
+
+void callback(char *topic, byte *payload, unsigned int length)
+{
+
+  int i = 0;
+  if (debug)
+  {
+    Serial.println("Message recu =>  topic: " + String(topic));
+    Serial.print(" | longueur: " + String(length, DEC));
+  }
+  // create character buffer with ending null terminator (string)
+  for (i = 0; i < length; i++)
+  {
+    message_buff[i] = payload[i];
+  }
+  message_buff[i] = '\0';
+
+  String msgString = String(message_buff);
+  if (debug)
+  {
+    Serial.println("Payload: " + msgString);
+  }
+
+  if (msgString == "ON")
+  {
+    digitalWrite(D2, HIGH);
+  }
+  else
+  {
+    digitalWrite(D2, LOW);
+  }
 }
