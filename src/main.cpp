@@ -10,6 +10,8 @@ const int LEDJAUNE = 4;
 const int LEDROUGE = 5;
 const int LEDVERTE = 12;
 const int LEDBLEU = 0;
+const int LEDNOIR = 15;
+
 const int oneWireBus = 14;
 const int BAUDRATE = 115200;
 
@@ -24,6 +26,7 @@ const int PORT = 1883;
 #define mqtt_password "123" // idem
 
 #define temp "temp"
+#define blacktea "blacktea"
 
 // function declartion
 void callback(char *topic, byte *payload, unsigned int length);
@@ -59,6 +62,7 @@ void setup()
   // String msgtest = "coucou";
   setup_wifi();                        // On se connecte au réseau wifi
   client.setServer(mqtt_server, 1883); // Configuration de la connexion au serveur MQTT
+  client.setCallback(callback);
 }
 
 void setup_wifi()
@@ -191,17 +195,17 @@ void loop()
   sendTempToMqtt(temperatureC);
 
   client.loop();
+
+  client.subscribe(blacktea);
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
 
   int i = 0;
-  if (debug)
-  {
-    Serial.println("Message recu =>  topic: " + String(topic));
-    Serial.print(" | longueur: " + String(length, DEC));
-  }
+  Serial.println("Message recu =>  topic: " + String(topic));
+  Serial.print(" | longueur: " + String(length, DEC));
+
   // create character buffer with ending null terminator (string)
   for (i = 0; i < length; i++)
   {
@@ -210,17 +214,14 @@ void callback(char *topic, byte *payload, unsigned int length)
   message_buff[i] = '\0';
 
   String msgString = String(message_buff);
-  if (debug)
-  {
-    Serial.println("Payload: " + msgString);
-  }
+  Serial.println("Payload: " + msgString);
 
-  // if (msgString == "ON")
-  // {
-  //   digitalWrite(D2, HIGH);
-  // }
-  // else
-  // {
-  //   digitalWrite(D2, LOW);
-  // }
+  if (msgString == "ON")
+  {
+    digitalWrite(LEDNOIR, HIGH);
+  }
+  else if (msgString == "OFF")
+  {
+    digitalWrite(LEDNOIR, LOW);
+  }
 }
