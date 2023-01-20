@@ -109,10 +109,77 @@ void reconnect()
   }
 }
 
+void startled(float tempp)
+{
+  if (tempp >= 20 && tempp < 25)
+  {
+    // start led vert -- eteindre les autres
+    digitalWrite(LEDVERTE, HIGH);
+    // eteindre les autres
+    digitalWrite(LEDBLEU, LOW);
+    digitalWrite(LEDJAUNE, LOW);
+    digitalWrite(LEDROUGE, LOW);
+  }
+  else if (tempp >= 25 && tempp < 30)
+  {
+    // start bleu -- eteindre les autres
+    digitalWrite(LEDBLEU, HIGH);
+    // eteindre les autres
+    digitalWrite(LEDVERTE, LOW);
+    digitalWrite(LEDROUGE, LOW);
+    digitalWrite(LEDJAUNE, LOW);
+  }
+  else if (tempp >= 30 && tempp < 35)
+  {
+    // start jaune -- eteindre les autres
+    digitalWrite(LEDJAUNE, HIGH);
+    // eteindre les autres
+    digitalWrite(LEDROUGE, LOW);
+    digitalWrite(LEDVERTE, LOW);
+    digitalWrite(LEDBLEU, LOW);
+  }
+  else if (tempp >= 35 && tempp < 40)
+  {
+    // start red -- eteindre les autres
+    digitalWrite(LEDROUGE, HIGH);
+    // eteindre les autres
+    digitalWrite(LEDVERTE, LOW);
+    digitalWrite(LEDBLEU, LOW);
+    digitalWrite(LEDJAUNE, LOW);
+  }
+  else
+  {
+    // start all led pour les faires clignoter
+    digitalWrite(LEDROUGE, HIGH);
+    digitalWrite(LEDVERTE, HIGH);
+    digitalWrite(LEDBLEU, HIGH);
+    digitalWrite(LEDJAUNE, HIGH);
+
+    delay(250);
+
+    digitalWrite(LEDROUGE, LOW);
+    digitalWrite(LEDVERTE, LOW);
+    digitalWrite(LEDBLEU, LOW);
+    digitalWrite(LEDJAUNE, LOW);
+    delay(250);
+  }
+}
+
+void sendTempToMqtt(float temperatureC)
+{
+  Serial.println("Envoie du message...");
+  client.publish(temp, String(temperatureC).c_str(), true); // Publie la température sur le topic temperature_topic
+  Serial.println("OK");
+  Serial.println("Envoie du prochain message dans 5s...");
+  delay(5000);
+}
+
 void loop()
 {
   sensors.requestTemperatures();
   float temperatureC = sensors.getTempCByIndex(0);
+  Serial.print("Temperature :");
+  Serial.println(temperatureC);
 
   if (!client.connected())
   {
@@ -120,10 +187,10 @@ void loop()
     reconnect();
   }
 
+  startled(temperatureC);
+  sendTempToMqtt(temperatureC);
+
   client.loop();
-  Serial.println("Envoie du message...");
-  client.publish(temp, String(temperatureC).c_str(), true); // Publie la température sur le topic temperature_topic
-  Serial.println("OK");
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
