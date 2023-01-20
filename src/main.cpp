@@ -2,10 +2,10 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-const int LEDJAUNE = 5;
-const int LEDROUGE = 4;
-const int LEDVERTE = 0;
-const int LEDBLEU = 12;
+const int LEDJAUNE = 4;
+const int LEDROUGE = 5;
+const int LEDVERTE = 12;
+const int LEDBLEU = 0;
 // GPIO where the DS18B20 is connected to
 const int oneWireBus = 14;
 const int BAUDRATE = 115200;
@@ -18,20 +18,20 @@ void startled(float temp)
 {
   if (temp >= 20 && temp < 25)
   {
-    // start led bleu -- eteindre les autres
-    digitalWrite(LEDBLEU, HIGH);
+    // start led vert -- eteindre les autres
+    digitalWrite(LEDVERTE, HIGH);
     // eteindre les autres
+    digitalWrite(LEDBLEU, LOW);
     digitalWrite(LEDJAUNE, LOW);
     digitalWrite(LEDROUGE, LOW);
-    digitalWrite(LEDVERTE, LOW);
   }
   else if (temp >= 25 && temp < 30)
   {
-    // start vert -- eteindre les autres
-    digitalWrite(LEDVERTE, HIGH);
+    // start bleu -- eteindre les autres
+    digitalWrite(LEDBLEU, HIGH);
     // eteindre les autres
+    digitalWrite(LEDVERTE, LOW);
     digitalWrite(LEDROUGE, LOW);
-    digitalWrite(LEDBLEU, LOW);
     digitalWrite(LEDJAUNE, LOW);
   }
   else if (temp >= 30 && temp < 35)
