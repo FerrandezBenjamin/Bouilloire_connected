@@ -10,6 +10,7 @@ const int LEDJAUNE = 4;
 const int LEDROUGE = 5;
 const int LEDVERTE = 12;
 const int LEDBLEU = 0;
+const int LEDNOIR = 15;
 
 const int oneWireBus = 14;
 const int BAUDRATE = 115200;
@@ -25,7 +26,7 @@ const int PORT = 1883;
 #define mqtt_password "123" // idem
 
 #define temp "temp"
-#define blueled "blueled"
+#define blacktea "blacktea"
 
 // function declartion
 void callback(char *topic, byte *payload, unsigned int length);
@@ -195,7 +196,7 @@ void loop()
 
   client.loop();
 
-  client.subscribe(blueled);
+  client.subscribe(blacktea);
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
@@ -217,9 +218,10 @@ void callback(char *topic, byte *payload, unsigned int length)
 
   if (msgString == "ON")
   {
-    digitalWrite(LEDBLEU, HIGH);
-    digitalWrite(LEDROUGE, LOW);
-    digitalWrite(LEDVERTE, LOW);
-    digitalWrite(LEDJAUNE, LOW);
+    digitalWrite(LEDNOIR, HIGH);
+  }
+  else if (msgString == "OFF")
+  {
+    digitalWrite(LEDNOIR, LOW);
   }
 }
