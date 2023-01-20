@@ -28,7 +28,7 @@ const int PORT = 1883;
 // function declartion
 void callback(char *topic, byte *payload, unsigned int length);
 void setup_wifi();
-void connectMQTT();
+void reconnect();
 
 // Buffer qui permet de décoder les messages MQTT reçus
 char message_buff[100];
@@ -84,36 +84,35 @@ void setup_wifi()
   Serial.print(WiFi.localIP());
 }
 
-void clientWasConnected()
-{
+// void clientWasConnected()
+// {
 
-  float t = 10;
-  float h = 20;
+//   float t = 10;
+//   float h = 20;
 
-  Serial.println('Envoie du message');
-  client.publish(test_topic, String(t).c_str(), true); // Publie la température sur le topic temperature_topic
-  client.publish(test_topic, String(h).c_str(), true); // Publie la température sur le topic temperature_topic
-  Serial.println('Msg envoye bb');
-  delay(5000);
-}
+//   Serial.println('Envoie du message');
+//   client.publish(test_topic, String(t).c_str(), true); // Publie la température sur le topic temperature_topic
+//   client.publish(test_topic, String(h).c_str(), true); // Publie la température sur le topic temperature_topic
+//   Serial.println('Msg envoye bb');
+//   delay(5000);
+// }
 
 // Connexion MQTT
-void connectMQTT()
+// Reconnexion
+void reconnect()
 {
-  int i = 0;
-  Serial.println('Je suis dans connectMQTT');
-  // Connexion MQTT
-  while (!client.connected() && i != 1)
+  Serial.println("Reconnect...");
+  Serial.print("Etat du client : ");
+  Serial.println(client.connected());
+  // Boucle jusqu'à obtenur une reconnexion
+  if (!client.connected())
   {
-    Serial.println("Connexion au serveur MQTT...");
+    Serial.print("Connexion au serveur MQTT...");
     if (client.connect("ESP8266Client", mqtt_user, mqtt_password))
     {
-      i = 1;
-      Serial.println("CLIENT CONNECTED : ");
-      // Serial.print(client.connected());
-      clientWasConnected();
+      Serial.println("OK");
+      //
     }
-
     else
     {
       Serial.print("KO, erreur : ");
@@ -121,19 +120,32 @@ void connectMQTT()
       Serial.println(" On attend 5 secondes avant de recommencer");
       delay(5000);
     }
+    Serial.print("Fin reconnect. Etat du client : ");
+    Serial.println(client.connected());
+  }
+  else
+  {
+    Serial.println('connecte. Sortie de la reconnect()');
   }
 }
 
 void loop()
 {
+  float t = 10;
+  float h = 20;
+
   if (!client.connected())
   {
-    Serial.println('client pas connecte, lancement fonction connectMQTT..');
-    connectMQTT();
+    Serial.println("client pas connecte...");
+    reconnect();
   }
 
-  Serial.println('Lancement de client.loop()');
+  Serial.println("Lancement de client.loop()");
   client.loop();
+  Serial.println("Envoie du message");
+  client.publish(test_topic, String(t).c_str(), true); // Publie la température sur le topic temperature_topic
+  client.publish(test_topic, String(h).c_str(), true); // Publie la température sur le topic temperature_topic
+  Serial.println("Msg envoye bb");
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
