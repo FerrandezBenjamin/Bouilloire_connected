@@ -19,14 +19,16 @@ const int PORT = 1883;
 #define wifi_ssid "Redmi Note 10 Pro"
 #define wifi_password "chipouille"
 
-#define mqtt_server "localhost"
+#define mqtt_server "192.168.241.215"
 #define mqtt_user "fidel"   // s'il a été configuré sur Mosquitto
 #define mqtt_password "123" // idem
+
+#define test_topic "hello"
 
 // function declartion
 void callback(char *topic, byte *payload, unsigned int length);
 void setup_wifi();
-void reconnect();
+void connectMQTT();
 
 // Buffer qui permet de décoder les messages MQTT reçus
 char message_buff[100];
@@ -54,9 +56,11 @@ void setup()
   // pinMode(LEDROUGE, OUTPUT);
   // pinMode(LEDVERTE, OUTPUT);
   // pinMode(LEDBLEU, OUTPUT);
+  // String msgtest = "coucou";
   setup_wifi();                        // On se connecte au réseau wifi
   client.setServer(mqtt_server, 1883); // Configuration de la connexion au serveur MQTT
-  client.setCallback(callback);        // La fonction de callback qui est executée à chaque réception de message
+  // client.setCallback(callback);        // La fonction de callback qui est executée à chaque réception de message
+  // client.publish(test_topic, String(msgtest).c_str(), true);
 }
 
 void setup_wifi()
@@ -80,17 +84,36 @@ void setup_wifi()
   Serial.print(WiFi.localIP());
 }
 
-// Reconnexion
-void reconnect()
+void clientWasConnected()
 {
-  // Boucle jusqu'à obtenur une reconnexion
-  while (!client.connected())
+
+  float t = 10;
+  float h = 20;
+
+  Serial.println('Envoie du message');
+  client.publish(test_topic, String(t).c_str(), true); // Publie la température sur le topic temperature_topic
+  client.publish(test_topic, String(h).c_str(), true); // Publie la température sur le topic temperature_topic
+  Serial.println('Msg envoye bb');
+  delay(5000);
+}
+
+// Connexion MQTT
+void connectMQTT()
+{
+  int i = 0;
+  Serial.println('Je suis dans connectMQTT');
+  // Connexion MQTT
+  while (!client.connected() && i != 1)
   {
     Serial.println("Connexion au serveur MQTT...");
     if (client.connect("ESP8266Client", mqtt_user, mqtt_password))
     {
-      Serial.println("OK");
+      i = 1;
+      Serial.println("CLIENT CONNECTED : ");
+      // Serial.print(client.connected());
+      clientWasConnected();
     }
+
     else
     {
       Serial.print("KO, erreur : ");
@@ -105,16 +128,12 @@ void loop()
 {
   if (!client.connected())
   {
-    reconnect();
+    Serial.println('client pas connecte, lancement fonction connectMQTT..');
+    connectMQTT();
   }
 
+  Serial.println('Lancement de client.loop()');
   client.loop();
-
-  float t = 0.25;
-  float h = 12;
-
-  client.publish("hello", String(t).c_str(), true); // Publie la température sur le topic temperature_topic
-  client.publish("hello", String(h).c_str(), true); // Et l'humidité
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
@@ -139,12 +158,12 @@ void callback(char *topic, byte *payload, unsigned int length)
     Serial.println("Payload: " + msgString);
   }
 
-  if (msgString == "ON")
-  {
-    digitalWrite(D2, HIGH);
-  }
-  else
-  {
-    digitalWrite(D2, LOW);
-  }
+  // if (msgString == "ON")
+  // {
+  //   digitalWrite(D2, HIGH);
+  // }
+  // else
+  // {
+  //   digitalWrite(D2, LOW);
+  // }
 }
