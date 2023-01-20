@@ -134,6 +134,9 @@ void loop()
   float t = 10;
   float h = 20;
 
+  sensors.requestTemperatures();
+  float temperatureC = sensors.getTempCByIndex(0);
+
   if (!client.connected())
   {
     Serial.println("client pas connecte...");
@@ -143,8 +146,8 @@ void loop()
   Serial.println("Lancement de client.loop()");
   client.loop();
   Serial.println("Envoie du message");
-  client.publish(test_topic, String(t).c_str(), true); // Publie la température sur le topic temperature_topic
-  client.publish(test_topic, String(h).c_str(), true); // Publie la température sur le topic temperature_topic
+  client.publish(test_topic, String(temperatureC).c_str(), true); // Publie la température sur le topic temperature_topic
+ // client.publish(test_topic, String(h).c_str(), true); // Publie la température sur le topic temperature_topic
   Serial.println("Msg envoye bb");
 }
 
