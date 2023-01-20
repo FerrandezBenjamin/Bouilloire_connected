@@ -23,7 +23,7 @@ const int PORT = 1883;
 #define mqtt_user "fidel"   // s'il a été configuré sur Mosquitto
 #define mqtt_password "123" // idem
 
-#define test_topic "hello"
+#define temp "temp"
 
 // function declartion
 void callback(char *topic, byte *payload, unsigned int length);
@@ -52,15 +52,13 @@ void setup()
 {
   Serial.begin(BAUDRATE); // Facultatif pour le debug
   // sensors.begin();
-  // pinMode(LEDJAUNE, OUTPUT);
-  // pinMode(LEDROUGE, OUTPUT);
-  // pinMode(LEDVERTE, OUTPUT);
-  // pinMode(LEDBLEU, OUTPUT);
+  pinMode(LEDJAUNE, OUTPUT);
+  pinMode(LEDROUGE, OUTPUT);
+  pinMode(LEDVERTE, OUTPUT);
+  pinMode(LEDBLEU, OUTPUT);
   // String msgtest = "coucou";
   setup_wifi();                        // On se connecte au réseau wifi
   client.setServer(mqtt_server, 1883); // Configuration de la connexion au serveur MQTT
-  // client.setCallback(callback);        // La fonction de callback qui est executée à chaque réception de message
-  // client.publish(test_topic, String(msgtest).c_str(), true);
 }
 
 void setup_wifi()
@@ -84,19 +82,6 @@ void setup_wifi()
   Serial.print(WiFi.localIP());
 }
 
-// void clientWasConnected()
-// {
-
-//   float t = 10;
-//   float h = 20;
-
-//   Serial.println('Envoie du message');
-//   client.publish(test_topic, String(t).c_str(), true); // Publie la température sur le topic temperature_topic
-//   client.publish(test_topic, String(h).c_str(), true); // Publie la température sur le topic temperature_topic
-//   Serial.println('Msg envoye bb');
-//   delay(5000);
-// }
-
 // Connexion MQTT
 // Reconnexion
 void reconnect()
@@ -111,7 +96,6 @@ void reconnect()
     if (client.connect("ESP8266Client", mqtt_user, mqtt_password))
     {
       Serial.println("OK");
-      //
     }
     else
     {
@@ -123,17 +107,10 @@ void reconnect()
     Serial.print("Fin reconnect. Etat du client : ");
     Serial.println(client.connected());
   }
-  else
-  {
-    Serial.println('connecte. Sortie de la reconnect()');
-  }
 }
 
 void loop()
 {
-  float t = 10;
-  float h = 20;
-
   sensors.requestTemperatures();
   float temperatureC = sensors.getTempCByIndex(0);
 
@@ -143,12 +120,10 @@ void loop()
     reconnect();
   }
 
-  Serial.println("Lancement de client.loop()");
   client.loop();
-  Serial.println("Envoie du message");
-  client.publish(test_topic, String(temperatureC).c_str(), true); // Publie la température sur le topic temperature_topic
- // client.publish(test_topic, String(h).c_str(), true); // Publie la température sur le topic temperature_topic
-  Serial.println("Msg envoye bb");
+  Serial.println("Envoie du message...");
+  client.publish(temp, String(temperatureC).c_str(), true); // Publie la température sur le topic temperature_topic
+  Serial.println("OK");
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
